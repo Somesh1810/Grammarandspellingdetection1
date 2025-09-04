@@ -1,0 +1,4 @@
+textblob
+numpy
+six
+nltk
