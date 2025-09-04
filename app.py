@@ -1,37 +1,28 @@
 import streamlit as st
-import requests
+from textblob import TextBlob
 
-st.title("Context-Aware Grammar and Spelling Checker (LanguageTool API)")
+st.title("Grammar and Spelling Checker (TextBlob)")
 
-input_text = st.text_area("Enter your text:", height=200)
+# Use session state to keep corrected text persistent
+if 'corrected_text' not in st.session_state:
+    st.session_state.corrected_text = ""
 
-def correct_text_with_languagetool(text):
-    url = "https://api.languagetool.org/v2/check"
-    data = {
-        'text': text,
-        'language': 'en-US',
-    }
-    response = requests.post(url, data=data)
-    result = response.json()
+# Input area
+st.markdown("### Enter your text:")
+input_text = st.text_area("", height=200, value=st.session_state.get('input_text', ''))
 
-    corrected_text = text
-    matches = result.get('matches', [])
-
-    # Apply corrections from last to first to keep offsets valid
-    for match in reversed(matches):
-        offset = match['offset']
-        length = match['length']
-        replacements = match.get('replacements', [])
-        if replacements:
-            replacement = replacements[0]['value']
-            corrected_text = corrected_text[:offset] + replacement + corrected_text[offset + length:]
-
-    return corrected_text
-
+# When button pressed, run TextBlob correction
 if st.button("Correct Grammar"):
-    if not input_text.strip():
+    if input_text.strip() == "":
         st.warning("Please enter some text to correct.")
     else:
-        corrected = correct_text_with_languagetool(input_text)
+        blob = TextBlob(input_text)
+        corrected = blob.correct()
+        st.session_state.corrected_text = str(corrected)
+        st.session_state.input_text = input_text
         st.success("✅ Grammar and spelling corrected.")
-        st.text_area("Corrected Text:", value=corrected, height=200)
+
+# Output area (editable)
+if st.session_state.corrected_text:
+    st.markdown("### Corrected Text:")
+    st.session_state.corrected_text = st.text_area("", height=200, value=st.session_state.corrected_text)
