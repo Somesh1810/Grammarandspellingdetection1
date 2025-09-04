@@ -1,21 +1,38 @@
 import streamlit as st
-from textblob import TextBlob
+import requests
 
-st.title("Grammar and Spelling Checker (TextBlob)")
+st.title("Context-Aware Grammar and Spelling Checker (LanguageTool API)")
 
-st.markdown("### Enter your text:")
-input_text = st.text_area("", height=200)
+input_text = st.text_area("Enter your text:", height=200)
 
-corrected_text = ""
+def correct_text_with_languagetool(text):
+    url = "https://api.languagetool.org/v2/check"
+    data = {
+        'text': text,
+        'language': 'en-US',
+        'enabledOnly': 'false'
+    }
+    response = requests.post(url, data=data)
+    result = response.json()
+
+    corrected_text = text
+    matches = result.get('matches', [])
+
+    # Apply corrections from the end to avoid messing up offsets
+    for match in reversed(matches):
+        offset = match['offset']
+        length = match['length']
+        replacements = match.get('replacements', [])
+        if replacements:
+            replacement = replacements[0]['value']
+            corrected_text = corrected_text[:offset] + replacement + corrected_text[offset + length:]
+
+    return corrected_text
 
 if st.button("Correct Grammar"):
     if input_text.strip() == "":
         st.warning("Please enter some text to correct.")
     else:
-        blob = TextBlob(input_text)
-        corrected_text = blob.correct()
+        corrected = correct_text_with_languagetool(input_text)
         st.success("✅ Grammar and spelling corrected.")
-
-if corrected_text:
-    st.markdown("### Corrected Text:")
-    corrected_text = st.text_area("", value=str(corrected_text), height=200)
+        st.text_area("Corrected Text:", value=corrected, height=200)
