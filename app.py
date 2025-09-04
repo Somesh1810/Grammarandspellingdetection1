@@ -10,7 +10,6 @@ def correct_text_with_languagetool(text):
     data = {
         'text': text,
         'language': 'en-US',
-        'enabledOnly': 'false'
     }
     response = requests.post(url, data=data)
     result = response.json()
@@ -18,7 +17,7 @@ def correct_text_with_languagetool(text):
     corrected_text = text
     matches = result.get('matches', [])
 
-    # Apply corrections from the end to avoid messing up offsets
+    # Apply corrections from last to first to keep offsets valid
     for match in reversed(matches):
         offset = match['offset']
         length = match['length']
@@ -30,7 +29,7 @@ def correct_text_with_languagetool(text):
     return corrected_text
 
 if st.button("Correct Grammar"):
-    if input_text.strip() == "":
+    if not input_text.strip():
         st.warning("Please enter some text to correct.")
     else:
         corrected = correct_text_with_languagetool(input_text)
